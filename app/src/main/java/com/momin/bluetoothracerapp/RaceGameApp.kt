@@ -1,4 +1,17 @@
 package com.momin.bluetoothracerapp
 
-class RaceGameApp {
+import android.app.Application
+import com.momin.bluetoothracerapp.core.di.bluetoothModule
+import com.momin.bluetoothracerapp.core.di.lobbyModule
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.GlobalContext.startKoin
+
+class RaceGameApp: Application() {
+    override fun onCreate() {
+        super.onCreate()
+        startKoin {
+            androidContext(this@RaceGameApp)
+            modules(listOf(bluetoothModule, lobbyModule))
+        }
+    }
 }
