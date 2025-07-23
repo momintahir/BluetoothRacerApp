@@ -17,9 +17,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.momin.bluetoothracerapp.core.navigation.Screen
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun RoleSelectionScreen(navController: NavController) {
+fun RoleSelectionScreen(navController: NavController, viewModel: RoleSelectionViewModel = koinViewModel ()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -35,7 +37,9 @@ fun RoleSelectionScreen(navController: NavController) {
         )
 
         Button(
-            onClick = {},
+            onClick = {
+                navController.navigate(Screen.Game.createRoute(isHost = true)) // or false
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
@@ -44,7 +48,9 @@ fun RoleSelectionScreen(navController: NavController) {
         }
 
         Button(
-            onClick = {},
+            onClick = {
+                navController.navigate(Screen.Game.createRoute(isHost = false)) // or false
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)

@@ -38,10 +38,14 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.momin.bluetoothracerapp.R
 import com.momin.bluetoothracerapp.feature.gameplay.presentation.GameViewModel
+import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @Composable
-fun GameMainScreen(navController: NavController,viewModel: GameViewModel = koinViewModel()) {
+fun GameMainScreen(isHost:Boolean, navController: NavController) {
+    val viewModel: GameViewModel = koinViewModel { parametersOf(isHost) }
+
     val isMyTurn by viewModel.isMyTurn
     val myName by viewModel.playerName
     val opponentName by viewModel.opponentName
@@ -50,6 +54,7 @@ fun GameMainScreen(navController: NavController,viewModel: GameViewModel = koinV
     val opponentsCarPosition = viewModel.opponentCarPosition.value
     LaunchedEffect(isMyTurn) {
         if (isMyTurn) {
+            delay(3000)
             showDiceDialog = true
         }
     }
@@ -63,17 +68,10 @@ fun GameMainScreen(navController: NavController,viewModel: GameViewModel = koinV
         )
     }
 
-    GameScreen(myCarPosition, opponentsCarPosition)
-    Box(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = if (isMyTurn) "Your Turn ($myName)" else "$opponentName's Turn",
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.Black)
-                .padding(50.dp),
-            color = Color.White,
-            textAlign = TextAlign.Center
-        )
+    if (isHost) {
+        GameScreen(myCarPosition, opponentsCarPosition) // Host: Red = me, Blue = opponent
+    } else {
+        GameScreen(opponentsCarPosition, myCarPosition) // Guest: Red = opponent, Blue = me
     }
 }
 @Composable
@@ -83,6 +81,7 @@ fun DiceRollDialog(onDiceRolled: (Int) -> Unit) {
         title = { Text("Your Turn!") },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
                 Text("Tap to roll the dice!")
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = {
@@ -170,12 +169,12 @@ fun RacingTrack(myCarPosition: Int, opponentsCarPosition: Int) {
         }
 
         val myCarOffset by animateDpAsState(
-            targetValue = (myCarPosition * -40).dp, // Adjust based on track design
-            animationSpec = tween(durationMillis = 600)
+            targetValue = (myCarPosition * -20).dp, // Adjust based on track design
+            animationSpec = tween(durationMillis = 300)
         )
         val opponentsCarOffset by animateDpAsState(
-            targetValue = (opponentsCarPosition * -40).dp, // Adjust based on track design
-            animationSpec = tween(durationMillis = 600)
+            targetValue = (opponentsCarPosition * (-20)).dp, // Adjust based on track design
+            animationSpec = tween(durationMillis = 300)
         )
 
         Car(
@@ -188,10 +187,9 @@ fun RacingTrack(myCarPosition: Int, opponentsCarPosition: Int) {
         Car(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .offset(x = 150.dp)
-                .rotate(70f),
-            painter = painterResource(R.drawable.blue_car),
-            yOffset = 0f
+                .offset(x = 150.dp),
+            painter = painterResource(R.drawable.yellow_car),
+            yOffset = opponentsCarOffset.value
         )
     }
 }
@@ -205,9 +203,9 @@ fun Car(modifier: Modifier = Modifier, painter: Painter, yOffset: Float = 0f) {
             painter = painter,
             contentDescription = null,
             modifier = Modifier
-                .graphicsLayer {
-                    translationY = yOffset
-                }
+//                .graphicsLayer {
+//                    translationY = yOffset
+//                }
                 .size(64.dp)
                 .align(Alignment.Center)
                 .offset(y = yOffset.dp)

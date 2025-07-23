@@ -11,5 +11,6 @@ val gameModule = module {
     factory { GameUseCase(bluetoothController = get()) }
 
     // Provide LobbyViewModel with LobbyUseCases dependency
-    viewModel { GameViewModel(get()) }
+    viewModel { (isHost: Boolean) -> GameViewModel(isHost,get()) }
+
 }

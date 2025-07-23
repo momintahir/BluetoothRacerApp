@@ -8,7 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.momin.bluetoothracerapp.feature.gameplay.domain.usecase.GameUseCase
 import kotlinx.coroutines.launch
 
-class GameViewModel(private val gameUseCase: GameUseCase) : ViewModel() {
+class GameViewModel(private val isHost: Boolean, private val gameUseCase: GameUseCase) : ViewModel() {
 
     private val _playerName = mutableStateOf("")
     val playerName: State<String> = _playerName
@@ -26,7 +26,7 @@ class GameViewModel(private val gameUseCase: GameUseCase) : ViewModel() {
     val opponentCarPosition: State<Int> = _opponentCarPosition
 
     init {
-        assignRandomNamesAndTurn()
+        setupPlayerState()
         gameUseCase.listenForMessages()
 
         viewModelScope.launch {
@@ -55,11 +55,16 @@ class GameViewModel(private val gameUseCase: GameUseCase) : ViewModel() {
         gameUseCase.sendMessage(message)
     }
 
-    private fun assignRandomNamesAndTurn() {
-        val names = listOf("Player1", "Player2")
-        _playerName.value = names[0]
-        _opponentName.value = names[1]
-        _isMyTurn.value = listOf(true, false).random()
+    private fun setupPlayerState() {
+        if (isHost) {
+            _playerName.value = "Host"
+            _opponentName.value = "Guest"
+            _isMyTurn.value = true // Host always starts
+        } else {
+            _playerName.value = "Guest"
+            _opponentName.value = "Host"
+            _isMyTurn.value = false
+        }
     }
 
     fun toggleTurn() {
