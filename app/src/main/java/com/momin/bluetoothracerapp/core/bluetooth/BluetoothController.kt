@@ -14,8 +14,10 @@ interface BluetoothController {
     fun unRegisterBondReceiver()
     val connectionSuccessFlow: SharedFlow<Boolean>
     val onDeviceConnectedFlow: SharedFlow<Boolean>
+    val onMessageReceivedFlow: SharedFlow<String>
     fun disconnect()
     fun sendMessage(message: String)
+    fun listenForMessages()
     fun observeMessages(): Flow<String>
     fun observeConnectedDevices(): Flow<List<BluetoothDevice>>
 }

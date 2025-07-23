@@ -1,3 +1,5 @@
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,8 +15,15 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -23,24 +32,78 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.momin.bluetoothracerapp.R
 import com.momin.bluetoothracerapp.feature.gameplay.presentation.GameViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
-fun GameMainScreen(viewModel: GameViewModel = koinViewModel()) {
-    GameScreen()
+fun GameMainScreen(navController: NavController,viewModel: GameViewModel = koinViewModel()) {
+    val isMyTurn by viewModel.isMyTurn
+    val myName by viewModel.playerName
+    val opponentName by viewModel.opponentName
+    var showDiceDialog by remember { mutableStateOf(false) }
+    val myCarPosition = viewModel.myCarPosition.value
+    val opponentsCarPosition = viewModel.opponentCarPosition.value
+    LaunchedEffect(isMyTurn) {
+        if (isMyTurn) {
+            showDiceDialog = true
+        }
+    }
+
+    if (showDiceDialog) {
+        DiceRollDialog(
+            onDiceRolled = { result ->
+                showDiceDialog = false
+                viewModel.onDiceRolled(result)
+            }
+        )
+    }
+
+    GameScreen(myCarPosition, opponentsCarPosition)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Text(
+            text = if (isMyTurn) "Your Turn ($myName)" else "$opponentName's Turn",
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black)
+                .padding(50.dp),
+            color = Color.White,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+@Composable
+fun DiceRollDialog(onDiceRolled: (Int) -> Unit) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text("Your Turn!") },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Tap to roll the dice!")
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = {
+                    val diceResult = (1..6).random()
+                    onDiceRolled(diceResult)
+                }) {
+                    Text("🎲 Roll Dice")
+                }
+            }
+        },
+        confirmButton = {}
+    )
 }
 
 @Composable
-fun GameScreen(modifier: Modifier = Modifier) {
-    RacingTrack()
+fun GameScreen(myCarPosition: Int, opponentsCarPosition: Int, modifier: Modifier = Modifier) {
+    RacingTrack(myCarPosition,opponentsCarPosition)
 }
 
 @Composable
-fun RacingTrack() {
+fun RacingTrack(myCarPosition: Int, opponentsCarPosition: Int) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -106,12 +169,21 @@ fun RacingTrack() {
             }
         }
 
+        val myCarOffset by animateDpAsState(
+            targetValue = (myCarPosition * -40).dp, // Adjust based on track design
+            animationSpec = tween(durationMillis = 600)
+        )
+        val opponentsCarOffset by animateDpAsState(
+            targetValue = (opponentsCarPosition * -40).dp, // Adjust based on track design
+            animationSpec = tween(durationMillis = 600)
+        )
+
         Car(
             modifier = Modifier
                 .offset(x = 50.dp)
                 .align(Alignment.BottomStart),
             painter = painterResource(R.drawable.red_car),
-            lane = 2
+            yOffset = myCarOffset.value
         )
         Car(
             modifier = Modifier
@@ -119,13 +191,13 @@ fun RacingTrack() {
                 .offset(x = 150.dp)
                 .rotate(70f),
             painter = painterResource(R.drawable.blue_car),
-            lane = 1
+            yOffset = 0f
         )
     }
 }
 
 @Composable
-fun Car(modifier: Modifier = Modifier, painter: Painter, lane: Int, yOffset: Float = 0f) {
+fun Car(modifier: Modifier = Modifier, painter: Painter, yOffset: Float = 0f) {
     Box(
         modifier = modifier
     ) {

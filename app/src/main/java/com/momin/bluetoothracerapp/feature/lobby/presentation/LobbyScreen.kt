@@ -43,11 +43,8 @@ fun LobbyScreen(navController: NavController, viewModel: LobbyViewModel = koinVi
     LaunchedEffect(Unit) {
         viewModel.eventFlow.collect { event ->
             when (event) {
-                UiEvent.NavigateToGame -> {
-                    navController.navigate(Screen.Game.route)
-                }
-                is UiEvent.ShowSnackbar -> {
-//                    scaffoldState.snackbarHostState.showSnackbar(event.message)
+                UiEvent.NavigateToRoleSelection -> {
+                    navController.navigate(Screen.RoleSelection.route)
                 }
             }
         }

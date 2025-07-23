@@ -1,4 +1,11 @@
 package com.momin.bluetoothracerapp.feature.gameplay.domain.usecase
 
-class GameUseCase {
+import com.momin.bluetoothracerapp.core.bluetooth.BluetoothController
+import kotlinx.coroutines.flow.SharedFlow
+
+class GameUseCase(private val bluetoothController: BluetoothController) {
+
+    fun sendMessage(message: String) = bluetoothController.sendMessage(message)
+    fun listenForMessages() = bluetoothController.listenForMessages()
+    val onMessageReceived: SharedFlow<String> = bluetoothController.onMessageReceivedFlow
 }

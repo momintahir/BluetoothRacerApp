@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.util.UUID
+import kotlin.concurrent.thread
 
 class BluetoothControllerImpl(private val context: Context):BluetoothController {
 
@@ -37,6 +39,10 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
     private val _connectionSuccessFlow = MutableSharedFlow<Boolean>()
     override val connectionSuccessFlow: SharedFlow<Boolean> = _connectionSuccessFlow
 
+
+    private val _onMessageReceivedFlow = MutableSharedFlow<String>()
+    override val onMessageReceivedFlow: SharedFlow<String> = _onMessageReceivedFlow
+
     private val _onDeviceConnectedFlow = MutableSharedFlow<Boolean>()
     override val onDeviceConnectedFlow: SharedFlow<Boolean> = _onDeviceConnectedFlow
 
@@ -48,8 +54,7 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
                     val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                     device?.let {
                         val current = discoveredDevices.value
-                        if (current.none { it.address == device.address }) {
-                            println("device found ${device.name}")
+                        if (current.none { it.address == device.address } && !device.name.isNullOrEmpty()) {
                             val updated = current.toList().toMutableList().apply { add(device) }
                             discoveredDevices.value = updated
                         }
@@ -168,7 +173,33 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
     }
 
     override fun sendMessage(message: String) {
+        try {
+            val outputStream = bluetoothSocket?.outputStream
+            outputStream?.write(message.toByteArray())
+            outputStream?.flush()
+        } catch (e: IOException) {
+            Log.e("Bluetooth", "Error sending message", e)
+        }
+    }
 
+    override fun listenForMessages() {
+        thread {
+            try {
+                val inputStream = bluetoothSocket?.inputStream
+                val buffer = ByteArray(1024)
+                var bytes: Int
+
+                while (true) {
+                    bytes = inputStream?.read(buffer)!!
+                    val message = String(buffer, 0, bytes)
+                    CoroutineScope(Dispatchers.Main).launch {
+                        _onMessageReceivedFlow.emit(message)
+                    }
+                }
+            } catch (e: IOException) {
+                Log.e("Bluetooth", "Error reading message", e)
+            }
+        }
     }
 
     override fun observeMessages(): Flow<String> {

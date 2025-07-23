@@ -24,13 +24,13 @@ class LobbyViewModel(private val useCases: LobbyUseCases) : ViewModel() {
         observeDevices()
         viewModelScope.launch {
             useCases.onConnectionSuccess.collect {
-                _eventFlow.emit(UiEvent.NavigateToGame)
+                _eventFlow.emit(UiEvent.NavigateToRoleSelection)
             }
         }
 
         viewModelScope.launch {
             useCases.onDeviceConnectedFlow.collect {
-                _eventFlow.emit(UiEvent.NavigateToGame)
+                _eventFlow.emit(UiEvent.NavigateToRoleSelection)
             }
         }
     }

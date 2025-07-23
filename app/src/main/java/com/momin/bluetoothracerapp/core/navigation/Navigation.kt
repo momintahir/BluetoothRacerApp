@@ -6,22 +6,29 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.momin.bluetoothracerapp.feature.lobby.presentation.MainScreen
+import com.momin.bluetoothracerapp.feature.roleselection.presentation.RoleSelectionScreen
 
 sealed class Screen(val route: String) {
     object Lobby : Screen("lobby_screen")
+    object RoleSelection : Screen("role_selection_screen")
     object Game : Screen("game_screen")
+
 }
 
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController()) {
     NavHost(navController = navController, startDestination = Screen.Lobby.route) {
         composable(Screen.Lobby.route) {
-            GameMainScreen()
+            MainScreen(navController)
+        }
+        composable(Screen.RoleSelection.route) {
+            RoleSelectionScreen(navController)
         }
 
-        // Later
-        // composable(Screen.Game.route) {
-        //     GameScreen()
-        // }
+         composable(Screen.Game.route) {
+             GameMainScreen(navController)
+         }
+
     }
 }
