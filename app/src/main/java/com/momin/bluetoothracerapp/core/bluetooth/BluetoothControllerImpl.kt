@@ -172,10 +172,10 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
         }
     }
 
-    override fun sendMessage(message: String) {
+    override fun sendMessage(message: Int) {
         try {
             val outputStream = bluetoothSocket?.outputStream
-            outputStream?.write(message.toByteArray())
+            outputStream?.write(message.toString().toByteArray())
             outputStream?.flush()
         } catch (e: IOException) {
             Log.e("Bluetooth", "Error sending message", e)

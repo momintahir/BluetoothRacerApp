@@ -1,4 +1,4 @@
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -18,21 +18,25 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -41,6 +45,7 @@ import com.momin.bluetoothracerapp.feature.gameplay.presentation.GameViewModel
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlin.math.roundToInt
 
 @Composable
 fun GameMainScreen(isHost:Boolean, navController: NavController) {
@@ -50,28 +55,48 @@ fun GameMainScreen(isHost:Boolean, navController: NavController) {
     val myName by viewModel.playerName
     val opponentName by viewModel.opponentName
     var showDiceDialog by remember { mutableStateOf(false) }
-    val myCarPosition = viewModel.myCarPosition.value
-    val opponentsCarPosition = viewModel.opponentCarPosition.value
+    val myCarPositionY = viewModel.myCarPositionY
+    val opponentCarPositionY = viewModel.opponentCarPositionY
     LaunchedEffect(isMyTurn) {
-        if (isMyTurn) {
+        if (isMyTurn && !viewModel.isGameOver) {
             delay(3000)
             showDiceDialog = true
         }
+    }
+
+    val gameResult = viewModel.gameResult
+
+    if (gameResult != null) {
+        AlertDialog(
+            onDismissRequest = { /* Optional: Restart or exit */ },
+            title = { Text("Game Over") },
+            text = { Text(gameResult) },
+            confirmButton = {
+                TextButton(onClick = { /* Restart logic here */ }) {
+                    Text("OK")
+                }
+            }
+        )
+    }
+
+    val density = LocalDensity.current
+    LaunchedEffect(Unit) {
+        viewModel.initGame(density)
     }
 
     if (showDiceDialog) {
         DiceRollDialog(
             onDiceRolled = { result ->
                 showDiceDialog = false
-                viewModel.onDiceRolled(result)
+                viewModel.onDiceRolled(result,density)
             }
         )
     }
 
     if (isHost) {
-        GameScreen(myCarPosition, opponentsCarPosition) // Host: Red = me, Blue = opponent
+        GameScreen(myCarPositionY, opponentCarPositionY,viewModel) // Host: Red = me, Blue = opponent
     } else {
-        GameScreen(opponentsCarPosition, myCarPosition) // Guest: Red = opponent, Blue = me
+        GameScreen(opponentCarPositionY, myCarPositionY,viewModel) // Guest: Red = opponent, Blue = me
     }
 }
 @Composable
@@ -97,18 +122,21 @@ fun DiceRollDialog(onDiceRolled: (Int) -> Unit) {
 }
 
 @Composable
-fun GameScreen(myCarPosition: Int, opponentsCarPosition: Int, modifier: Modifier = Modifier) {
-    RacingTrack(myCarPosition,opponentsCarPosition)
+fun GameScreen(myCarPosition: Int, opponentsCarPosition: Int, viewModel: GameViewModel, modifier: Modifier = Modifier) {
+    RacingTrack(myCarPosition, opponentsCarPosition, viewModel)
 }
 
 @Composable
-fun RacingTrack(myCarPosition: Int, opponentsCarPosition: Int) {
+fun RacingTrack(myCarPosition: Int, opponentsCarPosition: Int, viewModel: GameViewModel) {
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Gray)
+            .onGloballyPositioned {
+            }
     ) {
-        // Side Grass and Crowd (Left)
+        // Side Grass
         Box(
             modifier = Modifier
                 .fillMaxHeight()
@@ -127,10 +155,15 @@ fun RacingTrack(myCarPosition: Int, opponentsCarPosition: Int) {
         )
 
         // Finish Line
+        val topPadding = LocalDensity.current.run { 10.dp.roundToPx() }
+        val spacingHeight = LocalDensity.current.run { 6.dp.roundToPx() }
+
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 16.dp), horizontalAlignment = Alignment.CenterHorizontally
+                .padding(top = topPadding.dp)
+                .onGloballyPositioned { coordinates ->
+                }, horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "FINISH",
@@ -138,8 +171,12 @@ fun RacingTrack(myCarPosition: Int, opponentsCarPosition: Int) {
                 color = Color.White,
                 fontSize = 24.sp
             )
-            Spacer(modifier = Modifier.height(8.dp))
+
+            Spacer(modifier = Modifier.height(spacingHeight.dp))
             CheckerboardLine()
+            Box(Modifier.height(1.dp).fillMaxWidth().background(Color.Yellow).onGloballyPositioned{ coordinates ->
+                viewModel.finishLinePos = IntOffset(x = coordinates.positionInWindow().x.roundToInt(), y = coordinates.positionInWindow().y.roundToInt())
+            })
         }
 
         // Road and Lanes
@@ -168,34 +205,40 @@ fun RacingTrack(myCarPosition: Int, opponentsCarPosition: Int) {
             }
         }
 
-        val myCarOffset by animateDpAsState(
-            targetValue = (myCarPosition * -20).dp, // Adjust based on track design
-            animationSpec = tween(durationMillis = 300)
-        )
-        val opponentsCarOffset by animateDpAsState(
-            targetValue = (opponentsCarPosition * (-20)).dp, // Adjust based on track design
-            animationSpec = tween(durationMillis = 300)
-        )
+        val myCarAnim by animateIntAsState(targetValue = myCarPosition, animationSpec = tween(300))
+        val opponentCarAnim by animateIntAsState(targetValue = opponentsCarPosition, animationSpec = tween(300))
 
         Car(
             modifier = Modifier
                 .offset(x = 50.dp)
-                .align(Alignment.BottomStart),
+                .offset { IntOffset(x = 0, y = myCarAnim) }
+                .size(60.dp),
             painter = painterResource(R.drawable.red_car),
-            yOffset = myCarOffset.value
         )
         Car(
             modifier = Modifier
-                .align(Alignment.BottomStart)
-                .offset(x = 150.dp),
+                .offset(x = 150.dp)
+                .offset { IntOffset(x = 0, y = opponentCarAnim) }
+                .size(60.dp),
             painter = painterResource(R.drawable.yellow_car),
-            yOffset = opponentsCarOffset.value
         )
+
+        val boxSize = LocalDensity.current.run { 30.dp.roundToPx() }
+
+        Box(Modifier
+            .align(Alignment.BottomStart)
+            .size(boxSize.dp)
+            .onGloballyPositioned { coordinates ->
+                if (viewModel.opponentCarPositionY == 0 && viewModel.myCarPositionY == 0) {
+                    viewModel.opponentCarPositionY = coordinates.positionInWindow().y.roundToInt()
+                    viewModel.myCarPositionY = coordinates.positionInWindow().y.roundToInt()
+                }
+            })
     }
 }
 
 @Composable
-fun Car(modifier: Modifier = Modifier, painter: Painter, yOffset: Float = 0f) {
+fun Car(modifier: Modifier = Modifier, painter: Painter) {
     Box(
         modifier = modifier
     ) {
@@ -203,24 +246,20 @@ fun Car(modifier: Modifier = Modifier, painter: Painter, yOffset: Float = 0f) {
             painter = painter,
             contentDescription = null,
             modifier = Modifier
-//                .graphicsLayer {
-//                    translationY = yOffset
-//                }
-                .size(64.dp)
                 .align(Alignment.Center)
-                .offset(y = yOffset.dp)
         )
     }
 }
 
 @Composable
-fun CheckerboardLine() {
+fun CheckerboardLine(){
+    val boxSize = LocalDensity.current.run { 8.dp.roundToPx() }
     Column {
         Row {
             repeat(19) {
                 Box(
                     modifier = Modifier
-                        .size(15.dp, 15.dp)
+                        .size(boxSize.dp, boxSize.dp)
                         .background(if (it % 2 == 0) Color.White else Color.Black)
                 )
             }
@@ -230,7 +269,7 @@ fun CheckerboardLine() {
             repeat(19) {
                 Box(
                     modifier = Modifier
-                        .size(15.dp, 15.dp)
+                        .size(boxSize.dp, boxSize.dp)
                         .background(if (it % 2 == 0) Color.Black else Color.White)
                 )
             }

@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.SharedFlow
 
 class GameUseCase(private val bluetoothController: BluetoothController) {
 
-    fun sendMessage(message: String) = bluetoothController.sendMessage(message)
+    fun sendMessage(message: Int) = bluetoothController.sendMessage(message)
     fun listenForMessages() = bluetoothController.listenForMessages()
     val onMessageReceived: SharedFlow<String> = bluetoothController.onMessageReceivedFlow
 }
