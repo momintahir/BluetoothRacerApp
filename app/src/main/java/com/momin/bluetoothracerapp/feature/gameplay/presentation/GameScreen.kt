@@ -1,7 +1,13 @@
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,7 +36,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
@@ -106,13 +111,56 @@ fun DiceRollDialog(onDiceRolled: (Int) -> Unit) {
         title = { Text("Your Turn!") },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                var currentDice by remember { mutableIntStateOf(R.drawable.dice_1) }
+                var isRolling by remember { mutableStateOf(false) }
+                val diceImages = listOf(
+                    R.drawable.dice_1,
+                    R.drawable.dice_2,
+                    R.drawable.dice_3,
+                    R.drawable.dice_4,
+                    R.drawable.dice_5,
+                    R.drawable.dice_6
+                )
+                val transition = rememberInfiniteTransition(label = "diceBounce")
+                val offsetY by transition.animateFloat(
+                    initialValue = -20f,
+                    targetValue = 20f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 300, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "offsetY"
+                )
+                val offsetX by transition.animateFloat(
+                    initialValue = -20f,
+                    targetValue = 20f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(durationMillis = 300, easing = LinearEasing),
+                        repeatMode = RepeatMode.Reverse
+                    ),
+                    label = "offsetX"
+                )
+
+                LaunchedEffect(isRolling) {
+                    if (isRolling) {
+                        val startTime = System.currentTimeMillis()
+                        while (System.currentTimeMillis() - startTime < 3000) {
+                            currentDice = diceImages.random()
+                            delay(300L)
+                        }
+                        isRolling = false
+                        val result = (1..6).random()
+                        currentDice = diceImages[result - 1]
+                        onDiceRolled(result)
+                    }
+                }
+                Image(painter = painterResource(currentDice), contentDescription = "", modifier = Modifier.clickable{
+
+                }.offset(y = if (isRolling) offsetY.dp else 0.dp, x = if (isRolling) offsetX.dp else 0.dp))
 
                 Text("Tap to roll the dice!")
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = {
-                    val diceResult = (1..6).random()
-                    onDiceRolled(diceResult)
-                }) {
+                Button(onClick = { isRolling = true }) {
                     Text("🎲 Roll Dice")
                 }
             }

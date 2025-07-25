@@ -65,7 +65,6 @@ fun LobbyScreen(navController: NavController, viewModel: LobbyViewModel = koinVi
         LazyColumn {
             items(uiState.devices) { device ->
                 DeviceItem(device) {
-//                    viewModel.connect(device)
                     viewModel.pairDevice(device.device)
                 }
             }
