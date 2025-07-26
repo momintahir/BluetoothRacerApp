@@ -1,6 +1,5 @@
 package com.momin.bluetoothracerapp.core.di
 
-import com.momin.bluetoothracerapp.feature.lobby.domain.usecase.LobbyUseCases
 import com.momin.bluetoothracerapp.feature.roleselection.presentation.RoleSelectionViewModel
 import com.momin.bluetoothracerapp.feature.roleselection.usecase.RoleSelectionUseCase
 import org.koin.core.module.dsl.viewModel

@@ -8,11 +8,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.momin.bluetoothracerapp.feature.lobby.presentation.MainScreen
 import com.momin.bluetoothracerapp.feature.roleselection.presentation.RoleSelectionScreen
+import com.momin.bluetoothracerapp.feature.search.presentation.SearchMainScreen
 
 sealed class Screen(val route: String) {
-    object Lobby : Screen("lobby_screen")
+    object Search : Screen("search_screen")
     object RoleSelection : Screen("role_selection_screen")
     object Game : Screen("game_screen/{isHost}") {
         fun createRoute(isHost: Boolean) = "game_screen/$isHost"
@@ -22,9 +22,9 @@ sealed class Screen(val route: String) {
 
 @Composable
 fun AppNavHost(navController: NavHostController = rememberNavController()) {
-    NavHost(navController = navController, startDestination = Screen.Lobby.route) {
-        composable(Screen.Lobby.route) {
-            MainScreen(navController)
+    NavHost(navController = navController, startDestination = Screen.Search.route) {
+        composable(Screen.Search.route) {
+            SearchMainScreen(navController)
         }
         composable(Screen.RoleSelection.route) {
             RoleSelectionScreen(navController)
@@ -35,7 +35,7 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
             arguments = listOf(navArgument("isHost") { type = NavType.BoolType })
         ) { backStackEntry ->
             val isHost = backStackEntry.arguments?.getBoolean("isHost") ?: false
-            GameMainScreen(isHost = isHost,navController = navController)
+            GameMainScreen(isHost = isHost)
         }
     }
 }

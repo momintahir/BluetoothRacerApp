@@ -1,10 +1,10 @@
-package com.momin.bluetoothracerapp.feature.lobby.presentation
+package com.momin.bluetoothracerapp.feature.search.presentation
 
 import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.momin.bluetoothracerapp.feature.lobby.domain.BluetoothDeviceDomain
-import com.momin.bluetoothracerapp.feature.lobby.domain.usecase.LobbyUseCases
+import com.momin.bluetoothracerapp.feature.search.domain.BluetoothDeviceDomain
+import com.momin.bluetoothracerapp.feature.search.domain.usecase.SearchUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -12,8 +12,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class LobbyViewModel(private val useCases: LobbyUseCases) : ViewModel() {
-    private val _uiState = MutableStateFlow(LobbyUiState())
+class SearchScreenViewModel(private val useCases: SearchUseCase) : ViewModel() {
+    private val _uiState = MutableStateFlow(SearchUiState())
     val uiState = _uiState.asStateFlow()
 
     private val _eventFlow = MutableSharedFlow<UiEvent>()
@@ -47,7 +47,5 @@ class LobbyViewModel(private val useCases: LobbyUseCases) : ViewModel() {
     fun registerBondReceiver() = useCases.registerBondReceiver()
     fun unRegisterBondReceiver() = useCases.unRegisterBondReceiver()
     fun stopScan() = useCases.stopScan()
-    fun connect(device: BluetoothDeviceDomain) = useCases.connectTo(device)
     fun pairDevice(device: BluetoothDevice) = useCases.pairDevice(device)
-
 }

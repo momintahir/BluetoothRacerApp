@@ -1,20 +1,17 @@
-package com.momin.bluetoothracerapp.feature.lobby.domain.usecase
+package com.momin.bluetoothracerapp.feature.search.domain.usecase
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import com.momin.bluetoothracerapp.core.bluetooth.BluetoothController
-import com.momin.bluetoothracerapp.feature.lobby.domain.BluetoothDeviceDomain
+import com.momin.bluetoothracerapp.feature.search.domain.BluetoothDeviceDomain
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class LobbyUseCases(private val bluetoothController: BluetoothController) {
+class SearchUseCase(private val bluetoothController: BluetoothController) {
     fun startScan() = bluetoothController.startScan()
     fun stopScan() = bluetoothController.stopScan()
-    fun connectTo(device: BluetoothDeviceDomain) {
-        val platformDevice = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(device.address)
-        bluetoothController.connectToDevice(platformDevice)
-    }
+
     val onConnectionSuccess = bluetoothController.connectionSuccessFlow
     val onDeviceConnectedFlow = bluetoothController.onDeviceConnectedFlow
 
