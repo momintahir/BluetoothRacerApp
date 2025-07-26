@@ -1,5 +1,6 @@
 package com.momin.bluetoothracerapp.feature.lobby.presentation
 
+import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,8 +13,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -57,12 +60,21 @@ fun LobbyScreen(navController: NavController, viewModel: LobbyViewModel = koinVi
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Discovered Devices", style = MaterialTheme.typography.titleLarge)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp)
+    ) {
+        Text(
+            text = "Discovered Devices",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
 
-        Spacer(Modifier.height(8.dp))
-
-        LazyColumn {
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             items(uiState.devices) { device ->
                 DeviceItem(device) {
                     viewModel.pairDevice(device.device)
@@ -70,15 +82,25 @@ fun LobbyScreen(navController: NavController, viewModel: LobbyViewModel = koinVi
             }
         }
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Button(onClick = { viewModel.startScan() }) {
+            Button(
+                onClick = { viewModel.startScan() },
+                modifier = Modifier.weight(1f)
+            ) {
                 Text("Start Scan")
             }
-            Button(onClick = { viewModel.stopScan() }) {
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Button(
+                onClick = { viewModel.stopScan() },
+                modifier = Modifier.weight(1f)
+            ) {
                 Text("Stop Scan")
             }
         }
@@ -90,14 +112,23 @@ fun DeviceItem(device: BluetoothDeviceDomain, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp)
             .clickable { onClick() },
-        elevation = CardDefaults.cardElevation()
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F0FE)) // light bluish
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            println("myDevices: ${device.name}")
-            Text(device.name ?: "Unknown Device", style = MaterialTheme.typography.bodyLarge, color = Color.Black)
-            Text(device.address, style = MaterialTheme.typography.bodySmall,color = Color.Black)
+            Text(
+                text = device.name ?: "Unknown Device",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = device.address,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.DarkGray
+            )
         }
     }
 }
@@ -106,18 +137,20 @@ fun DeviceItem(device: BluetoothDeviceDomain, onClick: () -> Unit) {
 fun RequestBluetoothPermissions(
     onPermissionsGranted: @Composable () -> Unit
 ) {
-    val context = LocalContext.current
+    LocalContext.current
     val permissions = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             listOf(
-                android.Manifest.permission.BLUETOOTH_SCAN,
-                android.Manifest.permission.BLUETOOTH_CONNECT
+                Manifest.permission.BLUETOOTH_SCAN,
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.RECORD_AUDIO
             )
         } else {
             listOf(
-                android.Manifest.permission.BLUETOOTH,
-                android.Manifest.permission.BLUETOOTH_ADMIN,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN,
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.ACCESS_FINE_LOCATION
             )
         }
     }

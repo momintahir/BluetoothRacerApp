@@ -26,11 +26,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.momin.bluetoothracerapp.R
+import com.momin.bluetoothracerapp.core.speechrecognizer.SpeechRecognizerManager
 import com.momin.bluetoothracerapp.feature.gameplay.presentation.GameViewModel
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
@@ -105,60 +109,81 @@ fun GameMainScreen(isHost:Boolean, navController: NavController) {
     }
 }
 @Composable
-fun DiceRollDialog(onDiceRolled: (Int) -> Unit) {
+fun DiceRollDialog(
+    onDiceRolled: (Int) -> Unit
+) {
+    val context = LocalContext.current
+    var currentDice by remember { mutableIntStateOf(R.drawable.dice_1) }
+    var isRolling by remember { mutableStateOf(false) }
+
+    val diceImages = listOf(
+        R.drawable.dice_1, R.drawable.dice_2, R.drawable.dice_3,
+        R.drawable.dice_4, R.drawable.dice_5, R.drawable.dice_6
+    )
+
+    val speechRecognizerManager = remember {
+        SpeechRecognizerManager(context) { spokenText ->
+            if ("roll" in spokenText || "start" in spokenText) {
+                isRolling = true
+            }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        speechRecognizerManager.startListening()
+        onDispose {
+            speechRecognizerManager.stopListening()
+            speechRecognizerManager.destroy()
+        }
+    }
+
+    val transition = rememberInfiniteTransition(label = "diceBounce")
+    val offsetY by transition.animateFloat(
+        initialValue = -20f,
+        targetValue = 20f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 300, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offsetY"
+    )
+    val offsetX by transition.animateFloat(
+        initialValue = -20f,
+        targetValue = 20f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 300, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "offsetX"
+    )
+
+    LaunchedEffect(isRolling) {
+        if (isRolling) {
+            val startTime = System.currentTimeMillis()
+            while (System.currentTimeMillis() - startTime < 3000) {
+                currentDice = diceImages.random()
+                delay(300)
+            }
+            isRolling = false
+            val result = (1..6).random()
+            currentDice = diceImages[result - 1]
+            onDiceRolled(result)
+        }
+    }
+
     AlertDialog(
         onDismissRequest = {},
         title = { Text("Your Turn!") },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                var currentDice by remember { mutableIntStateOf(R.drawable.dice_1) }
-                var isRolling by remember { mutableStateOf(false) }
-                val diceImages = listOf(
-                    R.drawable.dice_1,
-                    R.drawable.dice_2,
-                    R.drawable.dice_3,
-                    R.drawable.dice_4,
-                    R.drawable.dice_5,
-                    R.drawable.dice_6
+                Image(
+                    painter = painterResource(currentDice),
+                    contentDescription = "Dice",
+                    modifier = Modifier
+                        .offset(y = if (isRolling) offsetY.dp else 0.dp, x = if (isRolling) offsetX.dp else 0.dp)
                 )
-                val transition = rememberInfiniteTransition(label = "diceBounce")
-                val offsetY by transition.animateFloat(
-                    initialValue = -20f,
-                    targetValue = 20f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(durationMillis = 300, easing = LinearEasing),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "offsetY"
-                )
-                val offsetX by transition.animateFloat(
-                    initialValue = -20f,
-                    targetValue = 20f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(durationMillis = 300, easing = LinearEasing),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "offsetX"
-                )
-
-                LaunchedEffect(isRolling) {
-                    if (isRolling) {
-                        val startTime = System.currentTimeMillis()
-                        while (System.currentTimeMillis() - startTime < 3000) {
-                            currentDice = diceImages.random()
-                            delay(300L)
-                        }
-                        isRolling = false
-                        val result = (1..6).random()
-                        currentDice = diceImages[result - 1]
-                        onDiceRolled(result)
-                    }
-                }
-                Image(painter = painterResource(currentDice), contentDescription = "", modifier = Modifier.clickable{
-
-                }.offset(y = if (isRolling) offsetY.dp else 0.dp, x = if (isRolling) offsetX.dp else 0.dp))
-
-                Text("Tap to roll the dice!")
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Say 'roll' or tap the button below!")
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = { isRolling = true }) {
                     Text("🎲 Roll Dice")
@@ -168,6 +193,7 @@ fun DiceRollDialog(onDiceRolled: (Int) -> Unit) {
         confirmButton = {}
     )
 }
+
 
 @Composable
 fun GameScreen(myCarPosition: Int, opponentsCarPosition: Int, viewModel: GameViewModel, modifier: Modifier = Modifier) {
