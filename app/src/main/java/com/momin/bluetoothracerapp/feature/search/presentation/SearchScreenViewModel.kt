@@ -3,7 +3,6 @@ package com.momin.bluetoothracerapp.feature.search.presentation
 import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.momin.bluetoothracerapp.feature.search.domain.BluetoothDeviceDomain
 import com.momin.bluetoothracerapp.feature.search.domain.usecase.SearchUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,24 +19,26 @@ class SearchScreenViewModel(private val useCases: SearchUseCase) : ViewModel() {
     val eventFlow: SharedFlow<UiEvent> = _eventFlow
 
     init {
-        useCases.startServer()
-        observeDevices()
-        viewModelScope.launch {
-            useCases.onConnectionSuccess.collect {
-                _eventFlow.emit(UiEvent.NavigateToRoleSelection)
-            }
-        }
-
+        useCases.listenConnections()
+        //        listening to incoming connections
         viewModelScope.launch {
             useCases.onDeviceConnectedFlow.collect {
                 _eventFlow.emit(UiEvent.NavigateToRoleSelection)
             }
         }
+
+
+        getBluetoothDevices()
+        viewModelScope.launch {
+            useCases.onConnectionSuccess.collect {
+                _eventFlow.emit(UiEvent.NavigateToRoleSelection)
+            }
+        }
     }
 
-    private fun observeDevices() {
+    private fun getBluetoothDevices() {
         viewModelScope.launch {
-            useCases.getDiscoveredDevices().collect { devices ->
+            useCases.getBluetoothDevices().collect { devices ->
                 _uiState.update { it.copy(devices = devices) }
             }
         }
@@ -47,5 +48,5 @@ class SearchScreenViewModel(private val useCases: SearchUseCase) : ViewModel() {
     fun registerBondReceiver() = useCases.registerBondReceiver()
     fun unRegisterBondReceiver() = useCases.unRegisterBondReceiver()
     fun stopScan() = useCases.stopScan()
-    fun pairDevice(device: BluetoothDevice) = useCases.pairDevice(device)
+    fun pairAndRegisterDevice(device: BluetoothDevice) = useCases.pairAndRegisterDevice(device)
 }

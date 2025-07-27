@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.UUID
 import kotlin.concurrent.thread
@@ -33,7 +34,7 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
         // Use a fallback UUID if the device doesn't advertise one
         private val DEFAULT_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
     }
-    private val discoveredDevices = MutableStateFlow<MutableList<BluetoothDevice>>(mutableListOf())
+    private val bluetoothDevices = MutableStateFlow<MutableList<BluetoothDevice>>(mutableListOf())
     private var bluetoothSocket: BluetoothSocket? = null
 
     private val _connectionSuccessFlow = MutableSharedFlow<Boolean>()
@@ -51,12 +52,13 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 BluetoothDevice.ACTION_FOUND -> {
-                    val device: BluetoothDevice? = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                    device?.let {
-                        val current = discoveredDevices.value
-                        if (current.none { it.address == device.address } && !device.name.isNullOrEmpty()) {
-                            val updated = current.toList().toMutableList().apply { add(device) }
-                            discoveredDevices.value = updated
+                    val foundDevice = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                    foundDevice?.takeIf { !it.name.isNullOrEmpty() }?.let { device ->
+                        val existingDevices = bluetoothDevices.value
+                        val isAlreadyDiscovered = existingDevices.any { it.address == device.address }
+
+                        if (!isAlreadyDiscovered) {
+                            bluetoothDevices.value = existingDevices.toMutableList().apply { add(device) }
                         }
                     }
                 }
@@ -74,7 +76,7 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
                 val prevBondState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, -1)
 
                 if (bondState == BluetoothDevice.BOND_BONDED && prevBondState == BluetoothDevice.BOND_BONDING) {
-                    println("✅ Bonded with ${device?.name}")
+                    println("Bonded with ${device?.name}")
                     device?.let { connectToDevice(it) }
                 }
             }
@@ -95,7 +97,6 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
     override fun startScan() {
         val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
         context.registerReceiver(receiver, filter)
-        println("start discovery called")
         bluetoothAdapter?.startDiscovery()
     }
 
@@ -110,48 +111,45 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
     @SuppressLint("MissingPermission")
     override fun connectToDevice(device: BluetoothDevice) {
 
-        val uuid =  DEFAULT_UUID
+        val uuid = DEFAULT_UUID
         val socket = device.createRfcommSocketToServiceRecord(uuid)
         bluetoothSocket = socket
-        Thread {
+        CoroutineScope(Dispatchers.IO).launch {
             try {
                 socket.connect()
-                println("✅ Connected successfully to ${device.name}")
+                println("Connected successfully to ${device.name}")
                 CoroutineScope(Dispatchers.Main).launch {
                     _connectionSuccessFlow.emit(true)
                 }
             } catch (e: IOException) {
-                println("❌ Connection failed: ${e.message}")
+                println("Connection failed: ${e.message}")
                 try {
                     socket.close()
                 } catch (_: IOException) { }
             }
-        }.start()
+        }
     }
 
     @SuppressLint("MissingPermission")
-    override fun startServer() {
+    override fun listenConnections() {
         val serverSocket = bluetoothAdapter?.listenUsingRfcommWithServiceRecord("MyGame", DEFAULT_UUID)
-
-        Thread {
+        CoroutineScope(Dispatchers.IO).launch {
             try {
-                val socket = serverSocket?.accept() // ⏳ Waits until another device connects
+                val socket = serverSocket?.accept() // Waits until another device connects
                 bluetoothSocket = socket
-                println("✅ Incoming connection accepted from ${socket?.remoteDevice?.name}")
-                CoroutineScope(Dispatchers.Main).launch {
+                println("Incoming connection accepted from ${socket?.remoteDevice?.name}")
+                withContext(Dispatchers.Main) {
                     _onDeviceConnectedFlow.emit(true) // ← This will trigger navigation
                 }
                 } catch (e: IOException) {
-                println("❌ Server accept failed: ${e.message}")
+                println("Server accept failed: ${e.message}")
             } finally {
                 try {
                     serverSocket?.close()
                 } catch (_: IOException) {}
             }
-        }.start()
+        }
     }
-
-
 
     override fun disconnect() {
         try {
@@ -164,7 +162,7 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
     }
 
     @SuppressLint("MissingPermission")
-    override fun pairDevice(device: BluetoothDevice) {
+    override fun pairAndRegisterDevice(device: BluetoothDevice) {
         if (device.bondState != BluetoothDevice.BOND_BONDED) {
             device.createBond()
         } else {
@@ -206,5 +204,5 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
         return flowOf("")
     }
 
-    override fun observeConnectedDevices() = discoveredDevices
+    override fun getBluetoothDevices() = bluetoothDevices
 }
