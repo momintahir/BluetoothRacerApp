@@ -15,16 +15,16 @@ import kotlinx.coroutines.launch
 
 class GameViewModel(private val isHost: Boolean, private val gameUseCase: GameUseCase) : ViewModel() {
 
-    private val _isMyTurn = mutableStateOf(false)
-    val isMyTurn: State<Boolean> = _isMyTurn
+    private val _isHostTurn = mutableStateOf(false)
+    val isHostTurn: State<Boolean> = _isHostTurn
 
-    var firstCarPositionY by mutableIntStateOf(0) // 0.0 to 1.0
+    var firstCarPositionY by mutableIntStateOf(0)
     var secondCarPositionY by mutableIntStateOf(0)
     var isGameOver by mutableStateOf(false)
     var gameResult by mutableStateOf<String?>(null)
 
     init {
-        _isMyTurn.value = isHost
+        _isHostTurn.value = isHost
         gameUseCase.listenForMessages()
     }
 
@@ -36,15 +36,34 @@ class GameViewModel(private val isHost: Boolean, private val gameUseCase: GameUs
 
         viewModelScope.launch {
             gameUseCase.onMessageReceived.collect { message ->
-                val moveDistance = (message.toInt() * stepSizePx).toInt()
-                secondCarPositionY -= moveDistance
-                _isMyTurn.value = true
-
-                if (secondCarPositionY <= finishLinePos.y) {
-                    isGameOver = true
-                    gameResult = "Opponent Win!"
-                }
+                val result = message.toIntOrNull() ?: return@collect
+                handleOpponentMove(result)
             }
+        }
+    }
+
+    fun handleOpponentMove(result: Int){
+        val moveDistance = (result * stepSizePx).toInt()
+        if (isHost) {
+            secondCarPositionY -= moveDistance
+            checkIfOpponentWon(secondCarPositionY)
+        } else {
+            firstCarPositionY -= moveDistance
+            checkIfOpponentWon(firstCarPositionY)
+        }
+        _isHostTurn.value = true
+    }
+    private fun checkIfOpponentWon(positionY: Int) {
+        if (positionY <= finishLinePos.y) {
+            isGameOver = true
+            gameResult = "Opponent Win!"
+        }
+    }
+
+    private fun checkIfYouWon(positionY: Int) {
+        if (positionY <= finishLinePos.y) {
+            isGameOver = true
+            gameResult = "You Win!"
         }
     }
 
@@ -53,22 +72,19 @@ class GameViewModel(private val isHost: Boolean, private val gameUseCase: GameUs
         val stepSizeDp = 50.dp
         val stepSizePx = with(density) { stepSizeDp.toPx() }
         val moveDistance = (result * stepSizePx).toInt()
-        firstCarPositionY = firstCarPositionY - moveDistance // move up, don't go past finish line
-
-        if (firstCarPositionY <= finishLinePos.y) {
-            isGameOver = true
-            gameResult = "You Win!"
+        if (isHost) {
+            firstCarPositionY -= moveDistance
+            checkIfYouWon(firstCarPositionY)
+        } else {
+            secondCarPositionY -= moveDistance
+            checkIfYouWon(secondCarPositionY)
         }
         sendDiceRollToOpponent(result)
-        _isMyTurn.value = false
+        _isHostTurn.value = false
     }
 
     fun sendDiceRollToOpponent(result: Int) {
         val message = result
         gameUseCase.sendMessage(message)
-    }
-
-    private fun setupPlayerState() {
-
     }
 }

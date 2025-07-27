@@ -40,13 +40,11 @@ import kotlin.math.roundToInt
 @Composable
 fun GameMainScreen(isHost: Boolean) {
     val viewModel: GameViewModel = koinViewModel { parametersOf(isHost) }
-
-    val isMyTurn by viewModel.isMyTurn
+    val isHostTurn by viewModel.isHostTurn
     var showDiceDialog by remember { mutableStateOf(false) }
-    val firstCarPositionY = viewModel.firstCarPositionY
-    val secondCarPositionY = viewModel.secondCarPositionY
-    LaunchedEffect(isMyTurn) {
-        if (isMyTurn && !viewModel.isGameOver) {
+
+    LaunchedEffect(isHostTurn) {
+        if (isHostTurn && !viewModel.isGameOver) {
             delay(3000)
             showDiceDialog = true
         }
@@ -79,17 +77,11 @@ fun GameMainScreen(isHost: Boolean) {
             }
         )
     }
-
- // FIXME check this logic
-    if (isHost) {
-        GameScreen(firstCarPositionY, secondCarPositionY,viewModel) // Host: Red = me, Blue = opponent
-    } else {
-        GameScreen(secondCarPositionY, firstCarPositionY,viewModel) // Guest: Red = opponent, Blue = me
-    }
+        GameScreen(viewModel)
 }
 
 @Composable
-fun GameScreen(firstCarPositionY: Int, secondCarPositionY: Int, viewModel: GameViewModel) {
+fun GameScreen(viewModel: GameViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -112,8 +104,8 @@ fun GameScreen(firstCarPositionY: Int, secondCarPositionY: Int, viewModel: GameV
         // Road and Lanes
         RoadAndLanes()
 
-        val firstCarAnim by animateIntAsState(targetValue = firstCarPositionY, animationSpec = tween(300))
-        val secondCarAnim by animateIntAsState(targetValue = secondCarPositionY, animationSpec = tween(300))
+        val firstCarAnim by animateIntAsState(targetValue = viewModel.firstCarPositionY, animationSpec = tween(300))
+        val secondCarAnim by animateIntAsState(targetValue = viewModel.secondCarPositionY, animationSpec = tween(300))
 
         Car(
             modifier = Modifier
