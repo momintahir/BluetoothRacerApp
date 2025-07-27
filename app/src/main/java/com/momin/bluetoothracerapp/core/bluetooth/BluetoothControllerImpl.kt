@@ -200,9 +200,5 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
         }
     }
 
-    override fun observeMessages(): Flow<String> {
-        return flowOf("")
-    }
-
     override fun getBluetoothDevices() = bluetoothDevices
 }

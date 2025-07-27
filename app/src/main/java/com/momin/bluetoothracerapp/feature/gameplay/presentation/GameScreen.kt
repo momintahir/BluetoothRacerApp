@@ -52,8 +52,12 @@ fun GameMainScreen(isHost: Boolean) {
         }
     }
 
-    val gameResult = viewModel.gameResult
+    val density = LocalDensity.current
+    LaunchedEffect(Unit) {
+        viewModel.initGame(density)
+    }
 
+    val gameResult = viewModel.gameResult
     if (gameResult != null) {
         AlertDialog(
             onDismissRequest = { /* Optional: Restart or exit */ },
@@ -67,11 +71,6 @@ fun GameMainScreen(isHost: Boolean) {
         )
     }
 
-    val density = LocalDensity.current
-    LaunchedEffect(Unit) {
-        viewModel.initGame(density)
-    }
-
     if (showDiceDialog) {
         DiceRollDialog(
             onDiceRolled = { result ->
@@ -80,7 +79,6 @@ fun GameMainScreen(isHost: Boolean) {
             }
         )
     }
-
 
  // FIXME check this logic
     if (isHost) {

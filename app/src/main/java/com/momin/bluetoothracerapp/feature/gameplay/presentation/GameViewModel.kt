@@ -24,7 +24,7 @@ class GameViewModel(private val isHost: Boolean, private val gameUseCase: GameUs
     var gameResult by mutableStateOf<String?>(null)
 
     init {
-        setupPlayerState()
+        _isMyTurn.value = isHost
         gameUseCase.listenForMessages()
     }
 
@@ -32,7 +32,7 @@ class GameViewModel(private val isHost: Boolean, private val gameUseCase: GameUs
     var finishLinePos by mutableStateOf(IntOffset.Zero)
 
     fun initGame(density: Density) {
-        stepSizePx = with(density) { 20.dp.toPx() }
+        stepSizePx = with(density) { 50.dp.toPx() }
 
         viewModelScope.launch {
             gameUseCase.onMessageReceived.collect { message ->
@@ -50,7 +50,7 @@ class GameViewModel(private val isHost: Boolean, private val gameUseCase: GameUs
 
 
     fun onDiceRolled(result: Int, density: Density) {
-        val stepSizeDp = 20.dp
+        val stepSizeDp = 50.dp
         val stepSizePx = with(density) { stepSizeDp.toPx() }
         val moveDistance = (result * stepSizePx).toInt()
         firstCarPositionY = firstCarPositionY - moveDistance // move up, don't go past finish line
@@ -69,6 +69,6 @@ class GameViewModel(private val isHost: Boolean, private val gameUseCase: GameUs
     }
 
     private fun setupPlayerState() {
-        _isMyTurn.value = isHost
+
     }
 }

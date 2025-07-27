@@ -18,6 +18,5 @@ interface BluetoothController {
     fun disconnect()
     fun sendMessage(message: Int)
     fun listenForMessages()
-    fun observeMessages(): Flow<String>
     fun getBluetoothDevices(): Flow<List<BluetoothDevice>>
 }
