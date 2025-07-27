@@ -77,7 +77,7 @@ fun GameMainScreen(isHost: Boolean) {
             }
         )
     }
-        GameScreen(viewModel)
+    GameScreen(viewModel)
 }
 
 @Composable

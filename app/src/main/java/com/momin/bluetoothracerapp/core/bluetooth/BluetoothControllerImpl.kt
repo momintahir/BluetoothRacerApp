@@ -12,16 +12,14 @@ import android.content.IntentFilter
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.util.UUID
-import kotlin.concurrent.thread
 
 class BluetoothControllerImpl(private val context: Context):BluetoothController {
 
@@ -138,7 +136,7 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
                 val socket = serverSocket?.accept() // Waits until another device connects
                 bluetoothSocket = socket
                 println("Incoming connection accepted from ${socket?.remoteDevice?.name}")
-                withContext(Dispatchers.Main) {
+                CoroutineScope(Dispatchers.Main).launch {
                     _onDeviceConnectedFlow.emit(true) // ← This will trigger navigation
                 }
                 } catch (e: IOException) {
@@ -181,16 +179,16 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
     }
 
     override fun listenForMessages() {
-        thread {
-            try {
-                val inputStream = bluetoothSocket?.inputStream
-                val buffer = ByteArray(1024)
-                var bytes: Int
+        CoroutineScope(Dispatchers.IO).launch {
+            val inputStream = bluetoothSocket?.inputStream ?: return@launch
+            val buffer = ByteArray(1024)
 
-                while (true) {
-                    bytes = inputStream?.read(buffer)!!
+            try {
+                while (isActive) {
+                    val bytes = inputStream.read(buffer)
                     val message = String(buffer, 0, bytes)
-                    CoroutineScope(Dispatchers.Main).launch {
+
+                    withContext(Dispatchers.Main) {
                         _onMessageReceivedFlow.emit(message)
                     }
                 }
