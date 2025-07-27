@@ -38,13 +38,13 @@ import org.koin.core.parameter.parametersOf
 import kotlin.math.roundToInt
 
 @Composable
-fun GameMainScreen(isHost: Boolean) {
-    val viewModel: GameViewModel = koinViewModel { parametersOf(isHost) }
-    val isHostTurn by viewModel.isHostTurn
+fun GameMainScreen(isFirstPlayer: Boolean) {
+    val viewModel: GameViewModel = koinViewModel { parametersOf(isFirstPlayer) }
+    val isFirstPlayerTurn by viewModel.isFirstPlayerTurn
     var showDiceDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isHostTurn) {
-        if (isHostTurn && !viewModel.isGameOver) {
+    LaunchedEffect(isFirstPlayerTurn) {
+        if (isFirstPlayerTurn && !viewModel.isGameOver) {
             delay(3000)
             showDiceDialog = true
         }

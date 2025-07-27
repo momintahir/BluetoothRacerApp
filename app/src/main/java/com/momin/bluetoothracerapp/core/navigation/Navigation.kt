@@ -14,8 +14,8 @@ import com.momin.bluetoothracerapp.feature.search.presentation.SearchMainScreen
 sealed class Screen(val route: String) {
     object Search : Screen("search_screen")
     object RoleSelection : Screen("role_selection_screen")
-    object Game : Screen("game_screen/{isHost}") {
-        fun createRoute(isHost: Boolean) = "game_screen/$isHost"
+    object Game : Screen("game_screen/{isFirstPlayer}") {
+        fun createRoute(isFirstPlayer: Boolean) = "game_screen/$isFirstPlayer"
     }
 
 }
@@ -32,10 +32,10 @@ fun AppNavHost(navController: NavHostController = rememberNavController()) {
 
         composable(
             route = Screen.Game.route,
-            arguments = listOf(navArgument("isHost") { type = NavType.BoolType })
+            arguments = listOf(navArgument("isFirstPlayer") { type = NavType.BoolType })
         ) { backStackEntry ->
-            val isHost = backStackEntry.arguments?.getBoolean("isHost") ?: false
-            GameMainScreen(isHost = isHost)
+            val isFirstPlayer = backStackEntry.arguments?.getBoolean("isFirstPlayer") ?: false
+            GameMainScreen(isFirstPlayer = isFirstPlayer)
         }
     }
 }

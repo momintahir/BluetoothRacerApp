@@ -1,5 +1,6 @@
 package com.momin.bluetoothracerapp.core.bluetooth
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -10,6 +11,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -23,6 +25,7 @@ import java.util.UUID
 
 class BluetoothControllerImpl(private val context: Context):BluetoothController {
 
+    private val scope = CoroutineScope(Dispatchers.IO)
     private val bluetoothAdapter: BluetoothAdapter? by lazy {
         val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
         manager?.adapter
@@ -112,13 +115,11 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
         val uuid = DEFAULT_UUID
         val socket = device.createRfcommSocketToServiceRecord(uuid)
         bluetoothSocket = socket
-        CoroutineScope(Dispatchers.IO).launch {
+        scope.launch {
             try {
                 socket.connect()
                 println("Connected successfully to ${device.name}")
-                CoroutineScope(Dispatchers.Main).launch {
-                    _connectionSuccessFlow.emit(true)
-                }
+                _connectionSuccessFlow.emit(true)
             } catch (e: IOException) {
                 println("Connection failed: ${e.message}")
                 try {
@@ -128,17 +129,15 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
         }
     }
 
-    @SuppressLint("MissingPermission")
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun listenConnections() {
         val serverSocket = bluetoothAdapter?.listenUsingRfcommWithServiceRecord("MyGame", DEFAULT_UUID)
-        CoroutineScope(Dispatchers.IO).launch {
+        scope.launch {
             try {
                 val socket = serverSocket?.accept() // Waits until another device connects
                 bluetoothSocket = socket
                 println("Incoming connection accepted from ${socket?.remoteDevice?.name}")
-                CoroutineScope(Dispatchers.Main).launch {
-                    _onDeviceConnectedFlow.emit(true) // ← This will trigger navigation
-                }
+                _onDeviceConnectedFlow.emit(true) // ← This will trigger navigation
                 } catch (e: IOException) {
                 println("Server accept failed: ${e.message}")
             } finally {
@@ -179,7 +178,7 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
     }
 
     override fun listenForMessages() {
-        CoroutineScope(Dispatchers.IO).launch {
+        scope.launch {
             val inputStream = bluetoothSocket?.inputStream ?: return@launch
             val buffer = ByteArray(1024)
 
@@ -187,10 +186,8 @@ class BluetoothControllerImpl(private val context: Context):BluetoothController 
                 while (isActive) {
                     val bytes = inputStream.read(buffer)
                     val message = String(buffer, 0, bytes)
+                    _onMessageReceivedFlow.emit(message)
 
-                    withContext(Dispatchers.Main) {
-                        _onMessageReceivedFlow.emit(message)
-                    }
                 }
             } catch (e: IOException) {
                 Log.e("Bluetooth", "Error reading message", e)

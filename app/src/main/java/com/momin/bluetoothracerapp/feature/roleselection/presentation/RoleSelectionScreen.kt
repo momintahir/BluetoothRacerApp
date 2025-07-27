@@ -25,8 +25,7 @@ import androidx.navigation.NavController
 import com.momin.bluetoothracerapp.core.navigation.Screen
 
 @Composable
-fun RoleSelectionScreen(
-    navController: NavController) {
+fun RoleSelectionScreen(navController: NavController) {
     var player1Name by remember { mutableStateOf("") }
     var player2Name by remember { mutableStateOf("") }
 
@@ -59,7 +58,7 @@ fun RoleSelectionScreen(
 
         Button(
             onClick = {
-                navController.navigate(Screen.Game.createRoute(isHost = true)) // Treat Player 1 as host
+                navController.navigate(Screen.Game.createRoute(isFirstPlayer = true)) // Treat Player 1 as host
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -84,7 +83,7 @@ fun RoleSelectionScreen(
 
         Button(
             onClick = {
-                navController.navigate(Screen.Game.createRoute(isHost = false)) // Treat Player 2 as guest
+                navController.navigate(Screen.Game.createRoute(isFirstPlayer = false)) // Treat Player 2 as guest
             },
             modifier = Modifier
                 .fillMaxWidth(),

@@ -27,7 +27,6 @@ class SearchScreenViewModel(private val useCases: SearchUseCase) : ViewModel() {
             }
         }
 
-
         getBluetoothDevices()
         viewModelScope.launch {
             useCases.onConnectionSuccess.collect {
