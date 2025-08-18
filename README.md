@@ -63,7 +63,9 @@ Unidirectional data flow makes the game **predictable and easy to debug**.
 ---
 
 ## 📸 Demo
-👉 *[Insert demo screenshots or GIFs here]*  
+<p align="center">
+  <img src="assets/screens.png" alt="Home Screen" width="1518"/>
+</p>
 
 ---
 
