@@ -19,8 +19,8 @@ class SearchScreenViewModel(private val useCases: SearchUseCase) : ViewModel() {
     val eventFlow: SharedFlow<UiEvent> = _eventFlow
 
     init {
+        // listening to incoming connections
         useCases.listenConnections()
-        //        listening to incoming connections
         viewModelScope.launch {
             useCases.onDeviceConnectedFlow.collect {
                 _eventFlow.emit(UiEvent.NavigateToRoleSelection)
