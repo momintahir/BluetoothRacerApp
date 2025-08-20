@@ -57,8 +57,7 @@ Unidirectional data flow makes the game **predictable and easy to debug**.
 - 🎛️ Haptic feedback for dice rolls  
 - ⛔ Obstacle animations & boosters on the track  
 - 🏆 Scoreboard at game results  
-- 🤖 Single-player mode with AI opponent  
-- 📱 Publish on Play Store (maybe 😉)  
+- 🤖 Single-player mode with AI opponent   
 
 ---
 
